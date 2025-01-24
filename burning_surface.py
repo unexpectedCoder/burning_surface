@@ -26,7 +26,7 @@ def calc_burning_area(e, propellant):
     holes_boundary = surface.boundary
     propel_boundary = propellant["cross-section"].boundary
     extra_boundary = propel_boundary.intersection(surface)
-    perimeter = holes_boundary.length - extra_boundary.length
-
+    perimeter = holes_boundary.length - extra_boundary.length#
+    
     # Площадь поверхности горения
     return perimeter * propellant["length"], surface
