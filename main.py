@@ -4,11 +4,14 @@
 
 import matplotlib.pyplot as plt
 import numpy as np
-from celluloid import Camera
+import os
 from matplotlib.patches import Circle
 from shapely import Point
 
 from burning_surface import calc_burning_area
+
+
+plt.style.use("sciart.mplstyle")
 
 
 # Внешний радиус заряда (постоянный, нет внешнего горения)
@@ -36,24 +39,31 @@ propellant = {
     "length": 1.0
 }
 
-
-# Для анимации и итогового графика S(e)
-fig, (ax1, ax2) = plt.subplots(num="Анимация", ncols=2, figsize=(8, 5))
-ax1.set(xlabel="$x$, м", ylabel="$y$, м", aspect="equal")
-ax2.set(xlabel="$e$, м", ylabel="$S$, м$^2$")
-ax2.grid()
-camera = Camera(fig)
-
 # Массив толщин сгоревшего свода (для примера)
 e_values = np.linspace(0, R, 200)
-S_values = []
+S_values, surfaces = [], []
 for i, e in enumerate(e_values, start=1):
     # Расчёт площади поверхности горения
     S, surface = calc_burning_area(e, propellant)
     S_values.append(S)
+    surfaces.append(surface)
 
-    # Кадр для анимации
-    ax1.add_patch(Circle([0, 0], R, color="grey", alpha=0.4))
+# График S(e)
+fig, ax = plt.subplots(num="S(e)")
+ax.plot(e_values, S_values)
+ax.set(xlabel="$e$, м", ylabel="$S$, м$^2$")
+fig.savefig(
+    os.path.join("pics", f"{fig.get_label()}.png"),
+    dpi=300
+)
+plt.close(fig)
+
+# Серия графиков на разных шагах
+for i in range(0, e_values.size, 5):
+    fig, (ax1, ax2) = plt.subplots(
+        num=f"S(e) step {i}", ncols=2, figsize=(8.6, 5)
+    )
+    surface = surfaces[i]
     xy = []
     if surface.geom_type == "MultiPolygon":
         xy.extend([g.exterior.xy for g in surface.geoms])
@@ -61,19 +71,22 @@ for i, e in enumerate(e_values, start=1):
         xy.append(surface.exterior.xy)
     else:
         raise ValueError("ошибка с типом surface")
+    
     for x, y in xy:
         ax1.plot(x, y, c="r")
-        ax2.plot(e_values[:i], S_values, c="b")
-    camera.snap()
+    ax1.add_patch(Circle((0, 0), R, facecolor="none", edgecolor="k"))
+    ax1.set(
+        xlabel="$x$, м", ylabel="$y$, м", aspect="equal"
+    )
+    ax1.grid(False)
 
-# Создание анимации
-ani = camera.animate()
-ani.save(f"{fig.get_label()}.gif", dpi=120)
-# График S(e)
-fig, ax = plt.subplots(num="Зависимость S(e)")
-ax.plot(e_values, S_values)
-ax.set(xlabel="$e$, м", ylabel="$S$, м$^2$")
-ax.grid(True)
-fig.savefig(f"{fig.get_label()}.png", dpi=300)
-
-plt.show()
+    ax2.plot(e_values[:i+1], S_values[:i+1])
+    ax2.set(
+        xlim=(None, 1.03*e_values[-1]), ylim=(0, 1.03*max(S_values)),
+        xlabel="$e$, м", ylabel="$S$, м$^2$"
+    )
+    fig.savefig(
+        os.path.join("pics", f"{fig.get_label()}.png"),
+        dpi=300
+    )
+    plt.close(fig)
