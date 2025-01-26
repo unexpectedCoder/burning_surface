@@ -48,6 +48,11 @@ for i, e in enumerate(e_values, start=1):
     S_values.append(S)
     surfaces.append(surface)
 
+try:
+    os.mkdir("pics")
+except OSError:
+    pass
+
 # График S(e)
 fig, ax = plt.subplots(num="S(e)")
 ax.plot(e_values, S_values)
