@@ -1,8 +1,8 @@
-from shapely.geometry import Point
-from shapely.ops import unary_union
+from math import pi
+from shapely import Point, unary_union
 
 
-def calc_burning_area(e, propellant):
+def calc_burning_area(e: float, propellant: dict):
     """Рассчитать площадь поверхности горения по
     толщине сгоревшего свода `e` и геометрии заряда `propellant`.
 
@@ -26,7 +26,17 @@ def calc_burning_area(e, propellant):
     holes_boundary = surface.boundary
     propel_boundary = propellant["cross-section"].boundary
     extra_boundary = propel_boundary.intersection(surface)
-    perimeter = holes_boundary.length - extra_boundary.length#
-    
-    # Площадь поверхности горения
-    return perimeter * propellant["length"], surface
+    perimeter = holes_boundary.length - extra_boundary.length
+
+    # Площадь поверхности горения внутренних каналов
+    S = perimeter * propellant["length"]
+    nf = propellant["faces"]
+    if nf == 0:
+        return S, surface
+    if propellant["length"] < 1e-6:
+        return 0, surface
+    # + площадь горения торцев
+    S_faces = nf*(pi*propellant["R"]**2 - surface.area)
+    # с изменением общей длины заряда
+    propellant["length"] -= nf * e
+    return S + S_faces, surface
